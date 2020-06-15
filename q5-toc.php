@@ -6,7 +6,7 @@
  * Plugin Name:		Q5 TOC
  * Plugin URI:  	https://quintic.co.uk/wordpress/plugins/q5-toc/
  * Description: 	Inserts a Table of Contents (normally into a side bar). Additionally, links to peer pages and associated topics can be included after the TOC. Both TOC and Topic links remain fixed when page scrolls.
- * Version:     	1.0.1
+ * Version:     	1.0.2
  * Author:      	Quintic
  * Author URI:  	https://www.quintic.co.uk/
  * Requires at least:5.2
@@ -84,12 +84,23 @@ class q5_toc
 	
 	public function build_toc ( $content )
 	{
+		set_error_handler('q5_toc_dom_error_handler');
 		$dom = new DOMDocument();
-		$dom->loadHTML( $content );
-		foreach ($dom->childNodes as $child)
-		{
-			$this->find_toc_elements ($this, $dom, $child);
+		if ($dom->loadHTML( $content ) === false)
+					{
+			echo $content;
+			echo ('<p>');
+			_e('Q5_TOC: Error attempting to load document');
+			echo ('</p>');
 		}
+		else
+		{
+			foreach ($dom->childNodes as $child)
+			{
+				$this->find_toc_elements ($this, $dom, $child);
+			}
+		}
+		restore_error_handler();
 	}
 	
 	public function render_toc ( $args = '' )
@@ -509,32 +520,34 @@ define ('TOP_MARKER', '<b id="q5_toc_top"></b>');
 define ('TAIL_MARKER', '<b id="q5_toc_tail"></b>');
 
 function q5_toc_add_anchor_points_content_filter ( $content ) {
-	/*
-	// Only action single page entries that are not site-pages.
-	if (! is_page() ||  ! is_main_query()) {
-		return $content;
-	}
-	
-	if ( has_term ('site-page', 'category', null)) {
-		return $content;
-	}
-*/
 	// Use DOMDocument to parse content as HTML to determine anchor points.
 	// However DOMDocument will top and tail content to create valid HTML document.
 	// So we add marker points to enable us to return the extract we need.
-	$anchor_id = 0;
-	$dom = new DOMDocument();
-	$dom->loadHTML(TOP_MARKER . $content . TAIL_MARKER);
-	foreach ($dom->childNodes as $child)
-	{
-		insertAnchorPoints ($anchor_id, $dom, $child);
-	}
+	set_error_handler('q5_toc_dom_error_handler');
 
-	//Remove tags added by DOMDocument, plus the marker tags that we added.
-	$content =  $dom->saveHTML();
-	$content = substr ( $content, strpos( $content, TOP_MARKER, 0 ) + strlen(TOP_MARKER), -1 );
-	$content = substr ( $content, 0, strpos( $content, TAIL_MARKER, 0 ) );
+		$anchor_id = 0;
+		$dom = new DOMDocument();
+		$dom->loadHTML(TOP_MARKER . $content . TAIL_MARKER);
+		foreach ($dom->childNodes as $child)
+		{
+			insertAnchorPoints ($anchor_id, $dom, $child);
+		}
+
+		//Remove tags added by DOMDocument, plus the marker tags that we added.
+		$content =  $dom->saveHTML();
+		$content = substr ( $content, strpos( $content, TOP_MARKER, 0 ) + strlen(TOP_MARKER), -1 );
+		$content = substr ( $content, 0, strpos( $content, TAIL_MARKER, 0 ) );
+
+	restore_error_handler();
 	return $content;
+}
+function q5_toc_dom_error_handler($number, $error)
+{
+	if (!preg_match('/^DOMDocument::loadHTML/', $error, $m))
+	{
+	    throw new Exception($m[1]);	
+	}
+	echo ('<p class="q5_toc_error">Q5_TOC: ' . $error . '</p>');
 }
 
 /*

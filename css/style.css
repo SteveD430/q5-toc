@@ -101,3 +101,11 @@
 .q5_toc_child_entry_hidden {
 	visibility:hidden;
 }
+
+.q5_toc_error {
+    font-family:'Circular';
+    font-size:12pt;
+    font-weight:bold;
+    line-height:1.5;
+    color:red;
+}
