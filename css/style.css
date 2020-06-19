@@ -26,7 +26,7 @@
 	top: 9px;
 	width: 8px;
 	height: 1px;
-	margin-left: 2px;
+	margin-left: 20px;
 }
 
 .q5_toc li::after, .q5_toc_hidden li::after  {
@@ -34,7 +34,7 @@
 	height: 100%;
 	width: 1px;
 	top: 2px;
-	margin-left: 2px;
+	margin-left: 20px;
 }
 
 .q5_toc ul > li::last-child::after, .q5_toc_hidden ul > li::last-child::after  {
@@ -42,7 +42,7 @@
 }
 
 .q5_toc li, .q5_toc_hidden li {
-	margin: 4px 10px 4px 0px;
+	margin: 4px 10px 4px 20px;
 	font-size:14px
 }
 

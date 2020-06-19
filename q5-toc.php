@@ -6,7 +6,7 @@
  * Plugin Name:		Q5 TOC
  * Plugin URI:  	https://quintic.co.uk/wordpress/plugins/q5-toc/
  * Description: 	Inserts a Table of Contents (normally into a side bar). Additionally, links to peer pages and associated topics can be included after the TOC. Both TOC and Topic links remain fixed when page scrolls.
- * Version:     	1.0.2
+ * Version:     	1.1.0
  * Author:      	Quintic
  * Author URI:  	https://www.quintic.co.uk/
  * Requires at least:5.2
@@ -29,6 +29,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	die( 'Invalid request.' );
 }
 
+if (! class_exists('q5_toc_entry')){
 class q5_toc_entry
 {
 	private $heading;
@@ -57,7 +58,9 @@ class q5_toc_entry
 		return $this->level;
 	}
 }
+}
 
+if (! class_exists('q5_toc')){
 class q5_toc
 {
 	private $anchor_id;
@@ -83,7 +86,7 @@ class q5_toc
 	}
 	
 	public function build_toc ( $content )
-	{
+	{	
 		set_error_handler('q5_toc_dom_error_handler');
 		$dom = new DOMDocument();
 		if ($dom->loadHTML( $content ) === false)
@@ -152,19 +155,18 @@ class q5_toc
 			}
 			
 		} 
-		$this->step_out($current_level);
-		
+		$this->step_out($current_level+1);
 		echo "</div>";
 	}
 	
 	private function step_in ($ulelement, $indent)
 	{
-		q5_output_multiple ($ulelement, $indent);
+		q5_toc_output_multiple ($ulelement, $indent);
 	}
 	
 	private function step_out ($indent)
 	{
-		q5_output_multiple ('</ul>', $indent);
+		q5_toc_output_multiple ('</ul>', $indent);
 	}
 	
 	private function find_toc_elements ($toc, $dom, $node)
@@ -203,12 +205,12 @@ class q5_toc
 		$this->toc_entries[] = $toc_entry;
 	}
 }
+}
 
-
-
+if (!function_exists('q5_toc_list_child_pages')){
 /**
- * function q5_list_child_pages
- * ============================
+ * function q5_toc_list_child_pages
+ * ================================
  * Return a list of child pages as HTML.
  *
  * @since 1.0.0
@@ -241,7 +243,7 @@ class q5_toc
  *     @type string       $sort_column  Comma-separated list of column names to sort the pages by. Accepts 'post_author',
  *                                      'post_date', 'post_title', 'post_name', 'post_modified', 'post_modified_gmt',
  *                                      'menu_order', 'post_parent', 'ID', 'rand', or 'comment_count'. Default 'post_title'.
- *     @type string       $title_child  List heading. Default 'Pages'.
+ *     @type string       $title        List heading. Default 'Pages'.
  *     @type string       $item_spacing Whether to preserve whitespace within the menu's HTML. Accepts 'preserve' or 'discard'.
  *                                      Default 'preserve'.
  *     @type Walker       $walker       Walker instance to use for listing pages. Default empty (Walker_Page).
@@ -250,11 +252,11 @@ class q5_toc
  * }
  * 
  */
-function q5_list_child_pages( $post, $args = '' ) 
+function q5_toc_list_child_pages( $post, $args = '' ) 
 {
 	$defaults = array(
 		'depth'        => 0,
-		'title_child'  => __( 'Pages' ),
+		'title'        => __( 'Pages' ),
 		'sort_column'  => 'menu_order, post_title',
 		'item_spacing' => 'preserve',
 		'post_status'  => 'publish',
@@ -285,8 +287,8 @@ function q5_list_child_pages( $post, $args = '' )
 	$output = '';
 	$r['hierarchical'] = 0;
 	$pages             = get_pages( $r );
-	$section_start_function = 'q5_add_section_start';
-	$section_end_function = 'q5_null_function';
+	$section_start_function = 'q5_toc_add_section_start';
+	$section_end_function = 'q5_toc_null_function';
 
 	if ( ! empty( $pages ) ) 
 	{
@@ -296,8 +298,8 @@ function q5_list_child_pages( $post, $args = '' )
 			if ($child_page->post_parent !=  0 && $child_page->post_parent == $post->ID)
 			{
 				$output .= $section_start_function($r);
-				$section_start_function = 'q5_null_function';
-				$section_end_function = 'q5_add_section_end';
+				$section_start_function = 'q5_toc_null_function';
+				$section_end_function = 'q5_toc_add_section_end';
 				$link = get_permalink($child_page->ID);
 				if ($link == null)
 				{
@@ -310,35 +312,37 @@ function q5_list_child_pages( $post, $args = '' )
 		return $output;
 	}
 }
+}
 
-if( ! function_exists( 'q5_add_section_start' ) ) {
-	function q5_add_section_start($args)
+if( ! function_exists( 'q5_toc_add_section_start' ) ) {
+	function q5_toc_add_section_start($args)
 	{
 		$output = '<div class="' . $args['section_class'] . '">';
-		if ( $args['title_child'] ) 
+		if ( $args['title'] ) 
 		{
-			$output .= '<p class="' . $args['title_class'] . '">' . $args['title_child'] . '</p><ul>';
+			$output .= '<p class="' . $args['title_class'] . '">' . $args['title'] . '</p>';
 		}
+		$output .= '<ul>';
 		return $output;
 	}
 }
 
-if( ! function_exists( 'q5_add_section_end' ) ) {
-	function q5_add_section_end()
+if( ! function_exists( 'q5_toc_add_section_end' ) ) {
+	function q5_toc_add_section_end()
 	{
 		return '</ul></div>';
 	}
 }
 
 
-if( ! function_exists( 'q5_null_function' ) ) {
-	function q5_null_function ($args = '')
+if( ! function_exists( 'q5_toc_null_function' ) ) {
+	function q5_toc_null_function ($args = '')
 	{
 	}
 }
 
-if( ! function_exists( 'q5_output_multiple' ) ) {	
-	function q5_output_multiple ($text, $occurances)
+if( ! function_exists( 'q5_toc_output_multiple' ) ) {	
+	function q5_toc_output_multiple ($text, $occurances)
 	{
 		for ($i = 0; $i < $occurances; $i++)
 		{
@@ -347,10 +351,10 @@ if( ! function_exists( 'q5_output_multiple' ) ) {
 	}
 }
 
-
+if (! function_exists('q5_toc_list_parent')){
 /**
- * function q5_list_parent
- * =======================
+ * function q5_toc_list_parent
+ * ===========================
  * Return a link to parent page as HTML.
  *
  * @since 1.0.0
@@ -363,17 +367,17 @@ if( ! function_exists( 'q5_output_multiple' ) ) {
  *     @type string		  $title_class	 CSS Class of the title 
  *	   @type string		  $entry_class   CSS Class of each entry
  
- *     @type string       $title_parent  List heading. Default 'Parent'.
+ *     @type string       $title         List heading. Default 'Parent'.
  *     @type string       $item_spacing Whether to preserve whitespace within the menu's HTML. Accepts 'preserve' or 'discard'.
  *                                      Default 'preserve'.
  *
  *	   @return string - HTML to insert into widget/page.
  * 
  */
-function q5_list_parent( $post, $args = '' ) 
+function q5_toc_list_parent( $post, $args = '' ) 
 {
 	$defaults = array(
-		'title_parent'  => __( 'Parent' ),
+		'title'        => __( 'Parent' ),
 		'section_class'=> '',
 		'title_class'  => '',
 		'entry_class'  => '',
@@ -399,116 +403,230 @@ function q5_list_parent( $post, $args = '' )
 			$link = get_page_link($post->post_parent);
 		}
 		$output = '<div class="' . $r['section_class'] . '">';
-		$output .= '<p class="' . $r['title_class'] . '">' . $r['title_parent'] . '</p>';
+		$output .= '<p class="' . $r['title_class'] . '">' . $r['title'] . '</p>';
 		$output .= '<a class="'. $r['entry_class'] . '" href="' . $link .'">' . $parent_page->post_title . '</a>';
 		$output .= '</div>';
 	}
 	
 	return $output;
 }
-
-/*
- * Q5 TOC Wigdet for inclusion in sidebars.
- */
-class q5_toc_widget extends WP_Widget
-{
-	public function __construct()
+}
+if (! function_exists('q5_toc_list_peer')){
+	/**
+	* function q5_toc_list_peer
+	* ===========================
+	* Return a link to blog peer pages as HTML.
+	*
+	* @since 1.1.0
+	*
+	* @param post $post 	Current Post.
+	* @param array|string $args {
+	*     Optional. Array or string of arguments to generate a list of pages. See 		`get_pages()` for additional arguments.
+	*
+	*     @type string		  $section_class CSS Class of the section (<div>
+	*     @type string		  $title_class	 CSS Class of the title 
+	*	  @type string		  $entry_class   CSS Class of each entry
+ 
+	*     @type string       $title        List heading. Default 'Related Blogs'.
+	*     @type string       $item_spacing Whether to preserve whitespace within the menu's HTML. Accepts 'preserve' or 'discard'.
+	*                                      Default 'preserve'.
+	*
+	*	   @return string - HTML to insert into widget/page.
+	* 
+	*/
+	function q5_toc_list_peer ( $post, $args = '' ) 
 	{
-		parent::__construct ('q5_toc_widget', 'Q5 TOC Widget');
-	}
-	
-	public function widget ($args, $instance)
-	{
-		global $wp_query;
-		$toc_definition = q5_toc_definition::get_instance();
-		$post = get_post( $wp_query->post->ID );
-		$post->post_content = q5_toc_add_anchor_points_content_filter(wptexturize($post->post_content));
-		
-		$toc = new q5_toc();
-		$toc->build_toc(wptexturize($post->post_content));
-		// TOC is rendered twice - see reason above.
-		$toc_args = array (
-			'toc_title' => $toc_definition->get_title()
+		$defaults = array(
+			'title'        => __( 'Related Blogs' ),
+			'section_class'=> '',
+			'title_class'  => '',
+			'entry_class'  => '',
+			'item_spacing' => 'preserve',
 		);
-		$toc->render_toc($toc_args);
-		$hiddenToc = array (
-			'toc_title' 			=> $toc_definition->get_title(),
-			'toc_class'             => 'q5_toc_hidden',
-			'toc_title_class'       => 'q5_toc_title_hidden',
-			'toc_hidden'			=> true,
-		);
-		$toc->render_toc($hiddenToc);
-					
-		// ChildPages
-		$child_args = array (
-			'title_child'	=> $toc_definition->get_child_title(),
-			'section_class'	=> 'q5_toc_child',
-			'title_class'	=> 'q5_toc_child_title',
-			'entry_class'	=> 'q5_toc_child_entry',
-		);
-		echo q5_list_child_pages($post, $child_args); 
-					
-		$child_args = array (
-			'title_child'	=> $toc_definition->get_child_title(),
-			'section_class'	=> 'q5_toc_child_hidden',
-			'title_class'	=> 'q5_toc_child_title_hidden',
-			'entry_class'	=> 'q5_toc_child_entry_hidden',
-			'toc_hidden' => true,
-		);
+		$output = '';
+		$r = wp_parse_args( $args, $defaults );
 
-		echo q5_list_child_pages($post, $child_args);  
-					
-		// Parent Page - uses same CSS classes as child section.
-		$parent_args = array(
-			'title_parent'	=> $toc_definition->get_parent_title(),
-			'section_class'	=> 'q5_toc_child',
-			'title_class'	=> 'q5_toc_child_title',
-			'entry_class'	=> 'q5_toc_child_entry',
-		);
-		echo q5_list_parent($post, $parent_args); 
-					
-		$parent_args = array(
-			'title_parent'	=> $toc_definition->get_parent_title(),
-			'section_class'	=> 'q5_toc_child_hidden',
-			'title_class'	=> 'q5_toc_child_title_hidden',
-			'entry_class'	=> 'q5_toc_child_entry_hidden',
-			'toc_hidden'    => true,
-		);
-		echo q5_list_parent($post, $parent_args);
+		if ( ! in_array( $r['item_spacing'], array( 'preserve', 'discard' ), true ) ) 
+		{
+			// invalid value, fall back to default.
+			$r['item_spacing'] = $defaults['item_spacing'];
+		}
+
+		$categories = get_the_category($post->id);
+		if ( ! empty( $categories ) ) 
+		{
+			$section_start_function = 'q5_toc_add_section_start';
+			$section_end_function = 'q5_toc_null_function';
+			$linked = array();
+			$categories_list = '';
+			$separator = '';
+			foreach ( (array) $categories as $category ) 
+			{
+				$peers = get_posts(array('category_name' => $category->slug,
+										 'numberposts' => -1,
+										 'exclude'  => $post->ID));
+				if (!empty($peers))
+				{
+					foreach ((array) $peers as $peer)
+					{
+						$link = get_permalink($peer);
+						if ($link == null)
+						{
+							$link = get_page_link($peer);
+						}
+						if(!array_key_exists($link, $linked))
+						{
+							$linked[$link] = $link;
+
+							$output .= $section_start_function($r);
+							$section_start_function = 'q5_toc_null_function';
+							$section_end_function = 'q5_toc_add_section_end';
+							$output .= '<li><a  class="'. $r['entry_class'] . '" href="' . $link .'">' . $peer->post_title . '</a></li>';
+						}
+					}
+				}
+			}
+			
+			$output .= $section_end_function();
+		}
+		return $output;
 	}
 }
+
+if (! class_exists('q5_toc_widget')){
+	/*
+	* Q5 TOC Wigdet for inclusion in sidebars.
+	*/
+	class q5_toc_widget extends WP_Widget
+	{
+		public function __construct()
+		{
+			parent::__construct ('q5_toc_widget', 'Q5 TOC Widget');
+		}
+	
+		public function widget ($args, $instance)
+		{	
+			global $wp_query;
+			$toc_definition = q5_toc_definition::get_instance();
+			$post = get_post( $wp_query->post->ID );
+		
+			$toc = new q5_toc();
+			$toc->build_toc(wptexturize($post->post_content));
+			// TOC is rendered twice - see reason above.
+			$toc_args = array (
+				'toc_title' => $toc_definition->get_title()
+			);
+			$toc->render_toc($toc_args);
+			$hiddenToc = array (
+				'toc_title' 			=> $toc_definition->get_title(),
+				'toc_class'             => 'q5_toc_hidden',
+				'toc_title_class'       => 'q5_toc_title_hidden',
+				'toc_hidden'			=> true,
+			);
+			$toc->render_toc($hiddenToc);
+					
+			if (is_page())
+			{		
+				// ChildPages
+				$child_args = array (
+					'title'     	=> $toc_definition->get_child_title(),
+					'section_class'	=> 'q5_toc_child',
+					'title_class'	=> 'q5_toc_child_title',
+					'entry_class'	=> 'q5_toc_child_entry',
+				);
+				echo q5_toc_list_child_pages($post, $child_args); 
+					
+				$child_args = array (
+					'title'     	=> $toc_definition->get_child_title(),
+					'section_class'	=> 'q5_toc_child_hidden',
+					'title_class'	=> 'q5_toc_child_title_hidden',
+					'entry_class'	=> 'q5_toc_child_entry_hidden',
+					'toc_hidden' => true,
+				);
+
+				echo q5_toc_list_child_pages($post, $child_args);  
+					
+				// Parent Page - uses same CSS classes as child section.
+				$parent_args = array(
+					'title'      	=> $toc_definition->get_parent_title(),
+					'section_class'	=> 'q5_toc_child',
+					'title_class'	=> 'q5_toc_child_title',
+					'entry_class'	=> 'q5_toc_child_entry',
+				);
+				echo q5_toc_list_parent($post, $parent_args); 
+					
+				$parent_args = array(
+					'title'     	=> $toc_definition->get_parent_title(),
+					'section_class'	=> 'q5_toc_child_hidden',
+					'title_class'	=> 'q5_toc_child_title_hidden',
+					'entry_class'	=> 'q5_toc_child_entry_hidden',
+					'toc_hidden'    => true,
+				);
+				echo q5_toc_list_parent($post, $parent_args);
+			}
+		
+			// Peer Blog Pages - uses same CSS classes as child section.
+			if (is_single())
+			{
+				$peer_args = array(
+					'title'     	=> $toc_definition->get_peer_blog_title(),
+					'section_class'	=> 'q5_toc_child',
+					'title_class'	=> 'q5_toc_child_title',
+					'entry_class'	=> 'q5_toc_child_entry',
+				);
+				echo q5_toc_list_peer($post, $peer_args); 
+					
+				$peer_args = array(
+					'title'     	=> $toc_definition->get_peer_blog_title(),
+					'section_class'	=> 'q5_toc_child_hidden',
+					'title_class'	=> 'q5_toc_child_title_hidden',
+					'entry_class'	=> 'q5_toc_child_entry_hidden',
+					'toc_hidden'    => true,
+				);
+				echo q5_toc_list_peer($post, $peer_args);
+			}		
+		}
+	}
+}
+
+if ( ! function_exists( 'q5_toc_insert_anchor_points' ) ) {
 /**
- * function insertAnchorPoints
- * ======== ==================
+ * function q5_toc_insert_anchor_points
+ * ======== ===========================
  *
  * Description:
  * ============
  * Add id attributes to the header elements that we wish to use as ToC elements.
  * Note: Anchor_id is passed in by Reference. This allows it to be modified at each recursive call.
  */
-function insertAnchorPoints (&$anchor_id, DOMDocument $doc, $node)
-{
-	$q5_toc_definition = q5_toc_definition::get_instance();
-	if ($q5_toc_definition->is_toc_element($node))
+	function q5_toc_insert_anchor_points (&$anchor_id, DOMDocument $doc, $node)
 	{
-		if ($node->getAttribute('id') == null)
+		$q5_toc_definition = q5_toc_definition::get_instance();
+		if ($q5_toc_definition->is_toc_element($node))
 		{
-			$node->setAttribute('id', q5_toc_definition::construct_anchor($anchor_id++));
+			if ($node->getAttribute('id') == null)
+			{
+				$node->setAttribute('id', q5_toc_definition::construct_anchor($anchor_id++));
+			}
 		}
-	}
 
-	if ($node->childNodes != null)
-	{
-		foreach($node->childNodes as $childNode)
+		if ($node->childNodes != null)
 		{
-			insertAnchorPoints ($anchor_id, $doc, $childNode);
+			foreach($node->childNodes as $childNode)
+			{
+				q5_toc_insert_anchor_points ($anchor_id, $doc, $childNode);
+			}
 		}
 	}
 }
 
+define ('Q5_TOC_TOP_MARKER', '<b id="q5_toc_top"></b>');
+define ('Q5_TOC_TAIL_MARKER', '<b id="q5_toc_tail"></b>');
+
+if ( ! function_exists( 'q5_toc_add_anchor_points_content_filter' ) ) {
 /**
  * function q5_toc_add_anchor_points_content_filter
- * ======== ===================================
+ * ======== =======================================
  
  * Description:
  * ============
@@ -516,38 +634,51 @@ function insertAnchorPoints (&$anchor_id, DOMDocument $doc, $node)
  * This code is executed as a filter over the content.
 */
 
-define ('TOP_MARKER', '<b id="q5_toc_top"></b>');
-define ('TAIL_MARKER', '<b id="q5_toc_tail"></b>');
-
-function q5_toc_add_anchor_points_content_filter ( $content ) {
-	// Use DOMDocument to parse content as HTML to determine anchor points.
-	// However DOMDocument will top and tail content to create valid HTML document.
-	// So we add marker points to enable us to return the extract we need.
-	set_error_handler('q5_toc_dom_error_handler');
-
+	function q5_toc_add_anchor_points_content_filter ( $content ) 
+	{	
+		// Do not filter if editing.
+		if (function_exists('get_current_screen')){
+			$screen = get_current_screen();
+			if ($screen->parent_base != 'edit')
+			{
+				return $content;
+			}
+		}
+		
+		// Use DOMDocument to parse content as HTML to determine anchor points.
+		
+		// DOMDocument will top and tail content to create valid HTML document.
+		// So we add marker points to enable us to return the extract we need.
+		set_error_handler('q5_toc_dom_error_handler');
+		
 		$anchor_id = 0;
 		$dom = new DOMDocument();
-		$dom->loadHTML(TOP_MARKER . $content . TAIL_MARKER);
+		$dom->loadHTML(Q5_TOC_TOP_MARKER . $content . Q5_TOC_TAIL_MARKER);
+				
 		foreach ($dom->childNodes as $child)
 		{
-			insertAnchorPoints ($anchor_id, $dom, $child);
+			q5_toc_insert_anchor_points ($anchor_id, $dom, $child);
 		}
 
 		//Remove tags added by DOMDocument, plus the marker tags that we added.
 		$content =  $dom->saveHTML();
-		$content = substr ( $content, strpos( $content, TOP_MARKER, 0 ) + strlen(TOP_MARKER), -1 );
-		$content = substr ( $content, 0, strpos( $content, TAIL_MARKER, 0 ) );
+		$content = substr ( $content, strpos( $content, Q5_TOC_TOP_MARKER, 0 ) + strlen(Q5_TOC_TOP_MARKER), -1 );
+		$content = substr ( $content, 0, strpos( $content, Q5_TOC_TAIL_MARKER, 0 ) );
 
-	restore_error_handler();
-	return $content;
-}
-function q5_toc_dom_error_handler($number, $error)
-{
-	if (!preg_match('/^DOMDocument::loadHTML/', $error, $m))
-	{
-	    throw new Exception($m[1]);	
+		restore_error_handler();
+		return $content;
 	}
-	echo ('<p class="q5_toc_error">Q5_TOC: ' . $error . '</p>');
+}
+
+if ( ! function_exists( 'q5_toc_dom_error_handler' ) ) {
+	function q5_toc_dom_error_handler($number, $error)
+	{
+		if (!preg_match('/^DOMDocument::loadHTML/', $error, $m))
+		{
+			throw new Exception($m[1]);	
+		}
+		// echo ('<p class="q5_toc_error">Q5_TOC: ' . $error . '</p>');
+	}
 }
 
 /*
@@ -578,7 +709,16 @@ if (!empty ($GLOBALS['pagenow']) &&
 }
 
 add_action('widgets_init', 'q5_toc_registration::q5_toc_widget_register');
-add_filter('the_content', 'q5_toc_add_anchor_points_content_filter' );
-
+// Do not activate TOC if in 'Edit' mode;
+$q5_toc_allow = true;
+if (function_exists('get_current_screen'))
+{
+	$screen = get_current_screen();
+	$q5_toc_allow = ($screen->parent_base != 'edit');
+}
+if ($q5_toc_allow)
+{
+	add_filter('the_content', 'q5_toc_add_anchor_points_content_filter' );
+}
 
 ?>

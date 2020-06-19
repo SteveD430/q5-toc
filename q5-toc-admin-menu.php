@@ -180,7 +180,7 @@ class q5_toc_admin_menu
 		//Title Parent section
 		add_settings_field(
 				q5_toc_registration::$parent_title_field_id,// id.
-				'TOC Title parent section',           // title
+				'TOC Title Parent Page section',           // title
 				array($this, 'q5_toc_parent_title_html'),   // callback to display HTML
 				$this->option_group,                 // Page / Sub-menu
 				'q5_toc_section',                    // Section
