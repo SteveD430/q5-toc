@@ -6,7 +6,7 @@
  * Plugin Name:		Q5 TOC
  * Plugin URI:  	https://quintic.co.uk/wordpress/plugins/q5-toc/
  * Description: 	Inserts a Table of Contents (normally into a side bar). Additionally, links to peer pages and associated topics can be included after the TOC. Both TOC and Topic links remain fixed when page scrolls.
- * Version:     	1.1.0
+ * Version:     	1.1.1
  * Author:      	Quintic
  * Author URI:  	https://www.quintic.co.uk/
  * Requires at least:5.2
@@ -444,6 +444,7 @@ if (! function_exists('q5_toc_list_peer')){
 			'item_spacing' => 'preserve',
 		);
 		$output = '';
+		q5_debug('Post: ' . $post->post_name .  ' ID: ' . $post->ID);
 		$r = wp_parse_args( $args, $defaults );
 
 		if ( ! in_array( $r['item_spacing'], array( 'preserve', 'discard' ), true ) ) 
@@ -453,6 +454,7 @@ if (! function_exists('q5_toc_list_peer')){
 		}
 
 		$categories = get_the_category($post->id);
+		q5_debug(serialize($categories));
 		if ( ! empty( $categories ) ) 
 		{
 			$section_start_function = 'q5_toc_add_section_start';
@@ -462,6 +464,7 @@ if (! function_exists('q5_toc_list_peer')){
 			$separator = '';
 			foreach ( (array) $categories as $category ) 
 			{
+			q5_debug('Category: ' . $category->slug);
 				$peers = get_posts(array('category_name' => $category->slug,
 										 'numberposts' => -1,
 										 'exclude'  => $post->ID));
@@ -477,6 +480,7 @@ if (! function_exists('q5_toc_list_peer')){
 						if(!array_key_exists($link, $linked))
 						{
 							$linked[$link] = $link;
+							q5_debug($link);
 
 							$output .= $section_start_function($r);
 							$section_start_function = 'q5_toc_null_function';
@@ -509,6 +513,7 @@ if (! class_exists('q5_toc_widget')){
 			global $wp_query;
 			$toc_definition = q5_toc_definition::get_instance();
 			$post = get_post( $wp_query->post->ID );
+q5_debug('Post: ' . $post->post_name);
 		
 			$toc = new q5_toc();
 			$toc->build_toc(wptexturize($post->post_content));
@@ -526,7 +531,8 @@ if (! class_exists('q5_toc_widget')){
 			$toc->render_toc($hiddenToc);
 					
 			if (is_page())
-			{		
+			{
+q5_debug('Is Page ' . $post->post_name);			
 				// ChildPages
 				$child_args = array (
 					'title'     	=> $toc_definition->get_child_title(),
@@ -568,6 +574,7 @@ if (! class_exists('q5_toc_widget')){
 			// Peer Blog Pages - uses same CSS classes as child section.
 			if (is_single())
 			{
+			q5_debug('Is single');
 				$peer_args = array(
 					'title'     	=> $toc_definition->get_peer_blog_title(),
 					'section_class'	=> 'q5_toc_child',
