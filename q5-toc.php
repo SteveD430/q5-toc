@@ -6,7 +6,7 @@
  * Plugin Name:		Q5 TOC
  * Plugin URI:  	https://quintic.co.uk/wordpress/plugins/q5-toc/
  * Description: 	Inserts a Table of Contents (normally into a side bar). Additionally, links to peer pages and associated topics can be included after the TOC. Both TOC and Topic links remain fixed when page scrolls.
- * Version:     	1.1.2
+ * Version:     	1.1.3
  * Author:      	Quintic
  * Author URI:  	https://www.quintic.co.uk/
  * Requires at least:5.2
@@ -452,7 +452,11 @@ if (! function_exists('q5_toc_list_peer')){
 			$r['item_spacing'] = $defaults['item_spacing'];
 		}
 
+		$toc_definition = q5_toc_definition::get_instance();
 		$categories = get_the_category($post->id);
+		$exclude_list = $toc_definition->get_peer_exclude_categories_list();
+		$categories = q5_toc_exclude_categories($categories, $exclude_list);
+
 		if ( ! empty( $categories ) ) 
 		{
 			$section_start_function = 'q5_toc_add_section_start';
@@ -490,6 +494,30 @@ if (! function_exists('q5_toc_list_peer')){
 			$output .= $section_end_function();
 		}
 		return $output;
+	}
+}
+	
+if (!function_exists('q5_toc_exclude_categories')){
+	/*
+	 * q5_toc_exclude_categories
+	 * =========================
+	 * Remove catories in TOC exlude list.
+	 */
+	function q5_toc_exclude_categories ($categories, $exclude_list)
+	{
+		if (empty($exclude_list) || empty($categories))
+		{
+			return $categories;
+		}
+		$filtered_categories = array();
+		foreach ($categories as $cat)
+		{
+			if (!array_key_exists($cat->name, $exclude_list))
+			{
+				$filtered_categories[] = $cat;
+			}
+		}
+		return $filtered_categories;
 	}
 }
 
@@ -714,7 +742,7 @@ $q5_toc_allow = true;
 if (function_exists('get_current_screen'))
 {
 	$screen = get_current_screen();
-	$q5_toc_allow = ($screen->parent_base != 'edit');
+	$q5_toc_allow = ($screen === null || $screen->parent_base != 'edit');
 }
 if ($q5_toc_allow)
 {

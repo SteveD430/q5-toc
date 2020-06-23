@@ -7,6 +7,8 @@ define ('Q5_ANCHOR_PREFIX', 'q5_anchor');
 
 class q5_toc_definition
 {	
+	// Static Functions
+	// ================
 	private static $q5_toc_definition;
 	
 	public static function get_instance()
@@ -17,12 +19,7 @@ class q5_toc_definition
 		}
 		return q5_toc_definition::$q5_toc_definition;
 	}
-	/*
-	public static function toc_elements()
-	{
-		return $toc_headers::array_values();
-	}
-	*/
+
 	public static function construct_anchor ($id)
 	{
 		return Q5_ANCHOR_PREFIX . $id;
@@ -40,6 +37,10 @@ class q5_toc_definition
 					5 => 'h6',
 					6 => 'h7');
 					
+	private $toc_elements_key; // TOC elements keyed on element name.
+	
+	private $peer_exclude_categories_list = array(); // Default is empty list.
+	
 	private $title = 'Table of Contents';
 
 	private $child_title = 'Topics';
@@ -47,8 +48,7 @@ class q5_toc_definition
 	private $parent_title = 'Main Topic';
 	
 	private $peer_blog_title = 'Related Blogs';
-	
-	private $toc_elements_key; // TOC elements keyed on element name.
+
 	
 	private function __construct()
 	{
@@ -90,6 +90,13 @@ class q5_toc_definition
 		{
 			$this->peer_blog_title = $peer_blog_title_option;
 		}
+		
+		$peer_exclude_categories_list_option = 
+					get_option(q5_toc_registration::$peer_blog_exclude_categories_field_id);
+		if($peer_exclude_categories_list_option != null)
+		{
+			$this->peer_exclude_categories_list = $peer_exclude_categories_list_option;
+		}
 	}
 		
 	public function get_depth()
@@ -100,6 +107,11 @@ class q5_toc_definition
 	public function get_headers()
 	{
 		return $this->headers;
+	}
+		
+	public function get_peer_exclude_categories_list()
+	{
+		return $this->peer_exclude_categories_list;
 	}
 		
 	public function get_title()
@@ -122,6 +134,7 @@ class q5_toc_definition
 		return $this->peer_blog_title;
 	}
 
+	
 	public function is_toc_element($element)
 	{		
 		if(array_key_exists($element->nodeName, $this->toc_elements_key) )

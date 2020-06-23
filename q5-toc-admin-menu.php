@@ -45,27 +45,38 @@ class q5_toc_admin_menu
 			$this->option_group, 
 			q5_toc_registration::$title_field_id, 
 			array ('type' => 'string', 
-			'description' => 'Q5 TOC Title')); 
+			'description' => 'Q5 TOC Title',
+			'sanitize_callback' =>array($this, 'q5_toc_sanitize_text_field'))); 
 
 				
 		register_setting (
 			$this->option_group,
 			q5_toc_registration::$child_title_field_id,
 			array('type'        => 'string',
-			'description'       => 'Q5 TOC Title Child Pages section'));
+			'description'       => 'Q5 TOC Title Child Pages section',
+			'sanitize_callback' =>array($this, 'q5_toc_sanitize_text_field')));
 			
 		register_setting (
 			$this->option_group, 
 			q5_toc_registration::$parent_title_field_id, 
 			array ('type' => 'string', 
-			'description' => 'Q5 TOC Title Parent Page section')); 
+			'description' => 'Q5 TOC Title Parent Page section',
+			'sanitize_callback' =>array($this, 'q5_toc_sanitize_text_field'))); 
 
 				
 		register_setting (
 			$this->option_group,
 			q5_toc_registration::$peer_blog_title_field_id,
 			array('type'        => 'string',
-			'description'       => 'Q5 TOC Title Blogs/Posts'));
+			'description'       => 'Q5 TOC Title Blogs/Posts',
+			'sanitize_callback' =>array($this, 'q5_toc_sanitize_text_field')));
+			
+		register_setting (
+			$this->option_group,
+			q5_toc_registration::$peer_blog_exclude_categories_field_id,
+			array('type'        => 'string',
+			'description'       => 'Q5 TOC Peer Categories exclusion list',
+			'sanitize_callback' =>array($this, 'q5_toc_sanitize_categories')));
 			
 	}
 		
@@ -115,6 +126,26 @@ class q5_toc_admin_menu
 		$trim = trim($name);
 		return isset($trim) && 
 		     (1 == preg_match("/^[a-z | A-Z][a-z | A-Z | 0-9]*$/", $trim));
+	}
+	
+	public function q5_toc_sanitize_text_field($input)
+	{
+		return sanitize_text_field($input);
+	}
+	
+	public function q5_toc_sanitize_categories($input)
+	{
+		$elements = explode(',', sanitize_text_field($input));
+		$index_categories = array();
+		foreach ($elements as $item)
+		{
+			if (!empty($item) && !array_key_exists($item, $index_categories))
+			{
+				$index_categories[$item] = $item;
+			}
+		}
+		$input = $index_categories;
+		return $input;
 	}
 	
 	// Define and populate the Fields:
@@ -167,9 +198,9 @@ class q5_toc_admin_menu
 					
 		//Title Child page section
 		add_settings_field( 
-				q5_toc_registration::$child_title_field_id, // id.
-				'TOC Title Child Page section',              // title
-				array($this, 'q5_toc_child_title_html'),// callback to display HTML
+				q5_toc_registration::$child_title_field_id,  // id.
+				'TOC Title Child Page',                      // title
+				array($this, 'q5_toc_child_title_html'),     // callback to display HTML
 				$this->option_group,                         // Page / Sub-menu
 				'q5_toc_section',                            // Section
 				array (
@@ -180,10 +211,10 @@ class q5_toc_admin_menu
 		//Title Parent section
 		add_settings_field(
 				q5_toc_registration::$parent_title_field_id,// id.
-				'TOC Title Parent Page section',           // title
+				'TOC Title Parent Page',                    // title
 				array($this, 'q5_toc_parent_title_html'),   // callback to display HTML
-				$this->option_group,                 // Page / Sub-menu
-				'q5_toc_section',                    // Section
+				$this->option_group,                        // Page / Sub-menu
+				'q5_toc_section',                           // Section
 				array (
 					'name'        => q5_toc_registration::$parent_title_field_id,
 					'value'       => $toc_defintion->get_parent_title(),
@@ -192,16 +223,28 @@ class q5_toc_admin_menu
 		//Peer Blog pages
 		add_settings_field( 
 				q5_toc_registration::$peer_blog_title_field_id, // id.
-				'TOC Title Peer Blogs section',                              // title
-				array($this, 'q5_toc_peer_blog_title_html'),        // callback to display HTML
-				$this->option_group,                         // Page / Sub-menu
-				'q5_toc_section',                            // Section
+				'TOC Title Peer Blogs',                         // title
+				array($this, 'q5_toc_peer_blog_title_html'),    // callback to display HTML
+				$this->option_group,                            // Page / Sub-menu
+				'q5_toc_section',                               // Section
 				array (
 					'name'             => q5_toc_registration::$peer_blog_title_field_id,
 					'value'            => $toc_defintion->get_peer_blog_title(),
 					'option_name'      => q5_toc_registration::$peer_blog_title_field_id));
+
+		//Peer Blog Exclude Categories
+		add_settings_field( 
+				q5_toc_registration::$peer_blog_exclude_categories_field_id, // id.
+				'Peer Categories to Exclude',                                // title
+				array($this, 'q5_toc_peer_blog_exclude_categories_html'),    // callback to display HTML
+				$this->option_group,                            // Page / Sub-menu
+				'q5_toc_section',                               // Section
+				array (
+					'name'        => q5_toc_registration::$peer_blog_exclude_categories_field_id,
+					'value'       => $toc_defintion->get_peer_exclude_categories_list(),
+					'option_name' => q5_toc_registration::$peer_blog_exclude_categories_field_id));
+	
 	}
-			
 	public function q5_toc_depth_html ($data)
 	{
 		echo '<input name="' . $data['name'] . '" id="' . $data['name'] . '"';
@@ -248,6 +291,19 @@ class q5_toc_admin_menu
 		echo ' type="text" value="' . $data['value'] . '"/>';
 	}
 
+	public function q5_toc_peer_blog_exclude_categories_html ($data)
+	{
+		$categories = '';
+		$separator = '';
+		foreach ($data['value'] as $cat_item)
+		{
+			$categories .= $separator . $cat_item;
+			$separator = ',';
+		}
+		echo '<input name="' . $data['name'] . '" id="' . $data['name'] . '"';
+		echo ' type="text" value="' . $categories . '"/>';
+	}
+	
 	// Define Sections
 	// ===============
 	public function q5_toc_add_menu_section($page)

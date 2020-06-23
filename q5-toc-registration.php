@@ -22,13 +22,16 @@
 	
 	public static $toc_elements_field_id = 'q5_toc_elements_field';
 	
+	public static $peer_blog_exclude_categories_field_id = 'q5_toc_peer_blog_exclude_categories_field';
+
 	public static $title_field_id = 'q5_toc_title';
 	
-	public static $child_title_field_id = 'q5_toc_child-title_field';
+	public static $child_title_field_id = 'q5_toc_child_title_field';
 	
 	public static $parent_title_field_id = 'q5_toc_parent_title_field';
 	
-	public static $peer_blog_title_field_id = 'q5_toc_peer_blog-title_field';
+	public static $peer_blog_title_field_id = 'q5_toc_peer_blog_title_field';
+
 	
 	// Plugin Acivation / Deactivation functions.
 	public static function q5_toc_activation ()
@@ -40,6 +43,8 @@
 		add_option(q5_toc_registration::$child_title_field_id, $q5_toc_definition->get_child_title());
 		add_option(q5_toc_registration::$parent_title_field_id, $q5_toc_definition->get_parent_title());
 		add_option(q5_toc_registration::$peer_blog_title_field_id, $q5_toc_definition->get_peer_blog_title());
+		add_option(q5_toc_registration::$peer_blog_exclude_categories_field_id, 
+					$q5_toc_definition->get_peer_exclude_categories_list());
 	}
 
 	public static function q5_toc_deactivation ()
@@ -52,11 +57,12 @@
 	public static function q5_toc_uninstall ()
 	{
 		delete_option(q5_toc_registration::$depth_field_id);
-		delete_option(q5_toc_registration::$toc_elements_field_id);	
+		delete_option(q5_toc_registration::$toc_elements_field_id);		
 		delete_option(q5_toc_registration::$title_field_id);
 		delete_option(q5_toc_registration::$child_title_field_id);
 		delete_option(q5_toc_registration::$parent_title_field_id);
 		delete_option(q5_toc_registration::$peer_blog_title_field_id);
+		delete_option(q5_toc_registration::$peer_blog_exclude_categories_field_id);
 
 	}
 	
